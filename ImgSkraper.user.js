@@ -6,6 +6,9 @@
 // @author       totocheku
 // @match        http://www.xossip.com/*
 // @grant        none
+// @updateURL	 https://github.com/totocheku/ImgSkraper/raw/master/ImgSkraper.meta.js
+// @downloadURL	 https://github.com/totocheku/ImgSkraper/raw/master/ImgSkraper.user.js
+
 // ==/UserScript==
 
 var imgScraperStyle = 
