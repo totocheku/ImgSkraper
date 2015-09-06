@@ -12,8 +12,13 @@
 // ==/UserScript==
 
 var imgScraperStyle = 
-    '.imgScraper_sidebar.left {position:fixed;height: 100%;width: 200px;}' + 
-    '.imgScraper_container { height: 100%; width:100%; }';
+    '.imgScraper_container { height: 100%; width:100%; }' +
+    '.imgScraper_sidebar.left { position:absolute; height:100%; width: 200px; background:rgb(255, 255, 255); left:0px; top:0px; }' +
+    '.imgScraper_control { position:absolute; top:0px; left:0px; z-index:200; }' +
+    '.imgScraper_bar { position:relative; }' +
+    '.imgScraper_bar ul { list-style:none; padding:10px; }' +
+    '.imgScraper_page { margin-left:200px; top:0px; }' +
+    '.imgScraper_floatingImage { display:none; position:absolute; top:0px; left:200px; padding:5px; z-index:100; }';
 
 function loadResources() {
     //jquery UI
@@ -33,44 +38,112 @@ function loadResources() {
     );
 }
 
-function start() {
-    var sidebarId = 'imgScraper_sidebar';
-    //create side bar which shall be listing all of images
-    var sidebar = $('<div>', {
-        'id':sidebarId,
-        text: "what is this \n something is better than nothing ",
-        'class': 'imgScraper_sidebar left'
+function createUiElements() {
+    //wrap the website inside a  div
+    $('body').wrapInner('<div class="imgScraper_page"></div>');
+    
+    var sidebar = $('<div></div>', {
+        'id':'imgScraper_sidebar',
+        'class':'imgScraper_sidebar left'
     });
-        
+    
+    var barDiv = $('<div></div>', {
+        'id':'imgScraper_bar',
+        'class':'imgScraper_bar'
+    }).appendTo(sidebar);
+    
+    $('<ul></ul>', {
+        'id':'imgScraper_imageUL'
+    }).appendTo(barDiv);
+    
+    $('<div id="imgScraper_floatingImage" class="imgScraper_floatingImage"></div>').appendTo(sidebar);
+    
+    //imgScraper div
+    $('body').prepend(sidebar.prop('outerHTML'));
+/*    
+    var controlsDiv = $('<div></div>', {
+        'id':'imgScraper_control',
+        'class':'imgScraper_control'
+    });
+    
+    var controlsHtml = '<input type="checkbox" id="imgScraper_sidebarToggleBtn">' +
+        '<label for="imgScraper_sidebarToggleBtn">toggle</label>';
+    $(controlsHtml).appendTo(controlsDiv);
+    
+    $('body').prepend(controlsDiv);
+*/    
+}
+
+function imgLinkMouseEnter(event) {
+    var image = new Image();
+    image.src = event.data;
+    var div = $('#imgScraper_floatingImage');
+    div.html(image.outerHTML);
+    div.css('display', 'block');
+}
+
+function imgLinkMouseLeave(event) {
+    var div = $('#imgScraper_floatingImage');
+    div.html("");
+    div.css('display', 'none');
+}
+
+function imgLinkMouseClick(event) {
+}
+
+function gatherImages() {
     $('img').each(function(index) {
         $(this).load(function() {
             var width = $(this).width();
             var height = $(this).height();
             if(width > 100 && height > 100) {
-                console.log(index + '(' + width + 'x' + height + ') : ' + $(this).attr('src'));
+                var filename = $(this).attr('src');
+                var imageUL = $('#imgScraper_imageUL');
+                var imgLink = $('<li>'+filename.split('/').pop()+'</li>').appendTo(imageUL);
+                imgLink.on('mouseenter', null, filename, imgLinkMouseEnter);
+                imgLink.on('mouseleave', null, filename, imgLinkMouseLeave);
+                imgLink.on('click', null, filename, imgLinkMouseClick);
             }
         });
     });
-    
-    sidebar.sidebar({'close':true, 'isClosed':true});
-    
-    sidebar.on("sidebar:open", function() {
-        alert('sidebar opened');
-    });
-    
-    sidebar.on("sidebar:close", function() {
-        alert('sidebar closed');
-    });
-    
-    var wholeBody = $('body').html();
-    try {
-        //put the whole webside inside a div
-        $('body').replaceWith('<div class="imgScraper_container">'+sidebar.prop('outerHTML')+'<div>'+wholeBody+'</div></div>');
-    } catch(err) {
-        //console.log(err);
+}
+
+function toggleBtnChanged(event) {
+    var sidebar = $('#imgScraper_sidebar');
+    sidebar.trigger('sidebar:toggle');
+}
+
+function updateSidebarToggleButtonState(open) {
+    var toggleBtn = $('#imgScraper_sidebarToggleBtn');
+    if(open === true) {
+        toggleBtn.button( "option", "icons", {primary:null, secondary:"ui-icon-arrowthickstop-1-w"});
+    } else {
+        toggleBtn.button( "option", "icons", {primary:"ui-icon-arrowthickstop-1-e", secondary:null});
     }
     
-    //sidebar.trigger("sidebar:open");
+    toggleBtn.button('refresh');
+}
+
+function sidebarStateChanged(open) {
+    return updateSidebarToggleButtonState(open);
+}
+
+function showUiElements() {
+    var toggleBtn = $('#imgScraper_sidebarToggleBtn');
+    toggleBtn.button();
+    toggleBtn.on('change', toggleBtnChanged);
+    
+    var sidebar = $('#imgScraper_sidebar');
+    sidebar.sidebar({'close':true});
+    sidebar.on("sidebar:open", sidebarStateChanged(true));
+    sidebar.on("sidebar:close", sidebarStateChanged(false));
+    sidebar.trigger("sidebar:open");
+}
+
+function start() {
+    createUiElements();
+    showUiElements();
+    gatherImages();
 }
 
 function begin() {
